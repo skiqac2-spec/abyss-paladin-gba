@@ -15,9 +15,17 @@ extern int nrooms;
 // world velocity per screen direction (0=S,1=SE,2=E,3=NE,4=N,5=NW,6=W,7=SW), unit = 1/256 tile
 static const s8 dirVX[8] = { 13, 18, 13, 0, -13, -18, -13, 0 };
 static const s8 dirVY[8] = { 13, 0, -13, -18, -13, 0, 13, 18 };
-// sprite frame direction and flip for each screen direction
-static const u8 dirFrame[8] = { 0, 1, 2, 3, 4, 3, 2, 1 };
-static const u8 dirFlip[8] = { 0, 0, 0, 0, 0, 1, 1, 1 };
+// the player has 8 true pre-rendered directions x 5 poses (idle, walk a, walk b, wind-up, strike);
+// the chosen frame's 16 tiles are streamed into OBJ VRAM after vsync
+static int plFrame, plFrameShown = -1;
+
+void player_gfx_commit(int force) {
+    if (!force && plFrame == plFrameShown) return;
+    const u16* idx = player_frames[plFrame];
+    for (int i = 0; i < 16; i++)
+        dma3_copy32(OBJ_TILES + (OT_PLAYER + i) * 8, spr_player_pool + idx[i] * 8, 8);
+    plFrameShown = plFrame;
+}
 
 // monster base stats by archetype: imp, skeleton, zombie, beast, spider
 static const u8 archHP[5] = { 14, 20, 28, 18, 16 };
@@ -280,6 +288,8 @@ static void hurt_mon(Mon* m, int dmg, int stun) {
         if (m->kind == 3) {
             bossAlive = 0; bossDefeated = 1;
             show_msg("THE GUARDIAN HAS FALLEN!", C_GOLD);
+            music_play(MUS_DUNGEON);
+            dialog_queue(EV_BOSSDOWN);
             sfx_boss();
         }
     } else if (m->state == 0) m->state = 1;
@@ -490,11 +500,11 @@ void play_draw(void) {
     // player
     {
         int pose = 0;
-        if (pl.attacking) pose = pl.attacking < 13 ? 3 : 0;
+        if (pl.attacking) pose = (pl.atkKind != 2 && pl.attacking >= 10) ? 3 : 4;
         else if (pl.moving) pose = ((pl.walkt >> 3) & 1) ? 1 : 2;
-        int tile = OT_PLAYER + (dirFrame[pl.dir] * 4 + pose) * 16;
+        plFrame = pose * 8 + pl.dir;
         int pal = (pl.hurt && pl.hurt < 16 && (pl.hurt & 4)) ? OP_HURT : OP_PLAYER;
-        if (!pl.dead) add32(pl.x, pl.y, tile, pal, dirFlip[pl.dir], 0);
+        if (!pl.dead) add32(pl.x, pl.y, OT_PLAYER, pal, 0, 0);
     }
     for (int i = 0; i < MAX_MON; i++) {
         Mon* m = &mons[i];

@@ -39,6 +39,17 @@ typedef unsigned long long u64;
 #define REG_DMA0DAD   REG32(0x040000B4)
 #define REG_DMA0CNT_L REG16(0x040000B8)
 #define REG_DMA0CNT_H REG16(0x040000BA)
+#define REG_DMA1SAD   REG32(0x040000BC)
+#define REG_DMA1DAD   REG32(0x040000C0)
+#define REG_DMA1CNT_H REG16(0x040000C6)
+#define REG_FIFO_A    0x040000A0
+#define REG_TM0CNT_L  REG16(0x04000100)
+#define REG_TM0CNT_H  REG16(0x04000102)
+#define REG_IE        REG16(0x04000200)
+#define REG_IF        REG16(0x04000202)
+#define REG_IME       REG16(0x04000208)
+#define BIOS_IF       REG16(0x03007FF8)
+#define IRQ_VECTOR    REG32(0x03007FFC)
 #define REG_DMA3SAD   REG32(0x040000D4)
 #define REG_DMA3DAD   REG32(0x040000D8)
 #define REG_DMA3CNT   REG32(0x040000DC)
@@ -67,6 +78,7 @@ typedef unsigned long long u64;
 #define KEY_L      0x0200
 
 #define IWRAM_CODE __attribute__((section(".iwram"), long_call, target("arm")))
+#define IWRAM_DATA __attribute__((section(".data")))
 #define EWRAM_BSS  __attribute__((section(".ewram_bss")))
 
 static inline void dma3_copy32(volatile void* dst, const void* src, u32 words) {

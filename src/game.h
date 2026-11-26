@@ -3,6 +3,8 @@
 #define GAME_H
 #include "gba.h"
 #include "assets.h"
+#include "music.h"
+#include "story.h"
 
 #ifndef ACT
 #define ACT 1
@@ -159,6 +161,15 @@ void spr_end(void);
 void oam_flush(void);
 void player_recalc(void);
 void give_xp(u32 xp);
+void player_gfx_commit(int force);
+
+// dialog.c (Korean story box)
+void dialog_init_gfx(void);
+void dialog_run(int ev);
+void dialog_queue(int ev);
+void dialog_pending(void);
+void dialog_healer(void);
+int dialog_has(int ev);
 
 // sound.c
 void snd_init(void);
@@ -173,5 +184,7 @@ void sfx_menu(void);
 void sfx_die(void);
 void sfx_portal(void);
 void sfx_boss(void);
+void music_play(int id);
+int music_current(void);
 
 #endif

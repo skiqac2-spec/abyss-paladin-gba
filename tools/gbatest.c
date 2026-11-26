@@ -9,6 +9,7 @@
 #include <fcntl.h>
 #include <stdarg.h>
 #include <mgba/core/log.h>
+#include <mgba/core/blip_buf.h>
 static void nolog(struct mLogger* l, int c, enum mLogLevel lv, const char* f, va_list a) { (void)l; (void)c; (void)lv; (void)f; (void)a; }
 static struct mLogger silent = { .log = nolog };
 
@@ -39,13 +40,30 @@ int main(int argc, char** argv) {
     FILE* sc = fopen(argv[3], "r");
     char line[256];
     long frame = 0;
+    FILE* au = NULL; long auN = 0;
+    core->setAudioBufferSize(core, 8192);
+    blip_t* bl = core->getAudioChannel(core, 0);
+    blip_set_rates(bl, core->frequency(core), 32768);
+    blip_set_rates(core->getAudioChannel(core, 1), core->frequency(core), 32768);
     while (fgets(line, sizeof line, sc)) {
         char cmd[32]; unsigned a = 0, b = 0; char name[200];
         if (sscanf(line, "%31s", cmd) != 1 || cmd[0] == '#') continue;
         if (!strcmp(cmd, "KEYS")) {
             sscanf(line, "%*s %x %u", &a, &b);
             core->setKeys(core, a);
-            for (unsigned i = 0; i < b; i++) { core->runFrame(core); frame++; }
+            for (unsigned i = 0; i < b; i++) {
+                core->runFrame(core); frame++;
+                short tmp[4096];
+                int n = blip_samples_avail(bl); if (n > 4096) n = 4096;
+                n = blip_read_samples(bl, tmp, n, 0);
+                { short t2[4096]; int m = blip_samples_avail(core->getAudioChannel(core, 1)); if (m > 4096) m = 4096;
+                  blip_read_samples(core->getAudioChannel(core, 1), t2, m, 0); }
+                if (au) { fwrite(tmp, 2, n, au); auN += n; }
+            }
+        } else if (!strcmp(cmd, "AUDIO")) {   // AUDIO file.raw : start recording mono 16-bit 32768 Hz
+            sscanf(line, "%*s %199s", name);
+            if (au) fclose(au);
+            au = fopen(name, "wb");
         } else if (!strcmp(cmd, "SHOT")) {
             sscanf(line, "%*s %199s", name);
             shot(buf, w, h, name);
@@ -72,6 +90,7 @@ int main(int argc, char** argv) {
             printf("%s=%d\n", name, (int16_t)core->busRead16(core, a));
         }
     }
+    if (au) fclose(au);
     fflush(stdout);
     core->deinit(core);
     return 0;

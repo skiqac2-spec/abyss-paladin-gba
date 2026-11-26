@@ -339,141 +339,32 @@ P_OUT, P_STD, P_ST, P_STL, P_GD, P_G, P_W, P_WS, P_R, P_RD, P_SK, P_LE, P_SH, P_
 P_BL = 14
 
 
-def pal_legs(c, x0, x1, top, bot, boot=True):
-    c.rect(x0, top, x1, bot, P_ST)
-    c.rect(x0, top, x0, bot, P_STL)
-    if boot:
-        c.rect(x0, bot - 1, x1, bot, P_LE)
-
-
-def paladin(d, pose):
-    """d: 0=S 1=SE 2=E 3=NE 4=N ; pose: 0 idle 1 walk-a 2 walk-b 3 attack"""
-    c = Canvas()
-    c.shadow(16, 30, 7)
-    bob = 1 if pose in (1, 2) else 0
-    back = d in (3, 4)
-    side = d == 2
-    sh = 1 if d in (1, 3) else 0          # 3/4 view shift
-    # legs
-    if side:
-        if pose == 1:
-            pal_legs(c, 12, 13, 24, 29); pal_legs(c, 17, 18, 24, 30)
-        elif pose == 2:
-            pal_legs(c, 13, 14, 24, 30); pal_legs(c, 16, 17, 24, 29)
-        else:
-            pal_legs(c, 14, 15, 24, 30); pal_legs(c, 16, 17, 24, 30)
-    else:
-        l_up = 1 if pose == 1 else 0
-        r_up = 1 if pose == 2 else 0
-        pal_legs(c, 13 + sh, 15 + sh, 24, 30 - l_up)
-        pal_legs(c, 17 + sh, 19 + sh, 24, 30 - r_up)
-    y0 = bob
-    # sword arm / shield placement
-    if back:
-        # cape
-        c.rect(11 + sh, 13 + y0, 21 + sh, 27, P_R)
-        for fx in (13, 16, 19):
-            c.line(fx + sh, 16 + y0, fx + sh, 27, P_RD)
-        c.rect(11 + sh, 13 + y0, 21 + sh, 13 + y0, P_RD)
-        # pauldrons
-        c.rect(9 + sh, 12 + y0, 12 + sh, 14 + y0, P_G); c.rect(20 + sh, 12 + y0, 23 + sh, 14 + y0, P_G)
-        # helmet back
-        c.ell(16 + sh, 8 + y0, 3.5, 4, P_ST)
-        c.rect(14 + sh, 5 + y0, 16 + sh, 6 + y0, P_STL)
-        c.rect(15 + sh, 2 + y0, 16 + sh, 4 + y0, P_G)
-        # shield on left (character's left is screen-left from behind)
-        c.rect(6 + sh, 15 + y0, 10 + sh, 22 + y0, P_LE)
-        c.rect(7 + sh, 23 + y0, 9 + sh, 24 + y0, P_LE)
-        c.rect(6 + sh, 15 + y0, 10 + sh, 15 + y0, P_GD)
-        # sword on right
-        if pose == 3:
-            c.line(22 + sh, 17 + y0, 30, 7, P_STL, 2)
-            c.rect(20 + sh, 16 + y0, 23 + sh, 18 + y0, P_G)
-        else:
-            c.line(23 + sh, 6 + y0, 23 + sh, 19 + y0, P_STL, 2)
-            c.rect(21 + sh, 19 + y0, 25 + sh, 19 + y0, P_G)
-            c.rect(23 + sh, 20 + y0, 23 + sh, 21 + y0, P_LE)
-    elif side:
-        # torso (profile)
-        c.rect(13, 13 + y0, 19, 23, P_ST)
-        c.rect(13, 13 + y0, 13, 23, P_STD)
-        c.rect(15, 14 + y0, 18, 23, P_W)
-        c.rect(16, 16 + y0, 17, 20 + y0, P_R)
-        c.rect(15, 17 + y0, 18, 18 + y0, P_R)
-        c.rect(13, 22, 19, 22, P_LE)
-        c.rect(12, 23, 19, 25, P_W)       # tabard skirt
-        c.rect(12, 25, 19, 25, P_WS)
-        c.rect(12, 12 + y0, 16, 14 + y0, P_G)   # pauldron
-        # helmet profile
-        c.ell(16, 8 + y0, 3.5, 4, P_ST)
-        c.rect(17, 8 + y0, 19, 9 + y0, P_VI)
-        c.rect(14, 5 + y0, 15, 6 + y0, P_STL)
-        c.rect(15, 2 + y0, 16, 4 + y0, P_G)
-        # shield held forward
-        c.rect(19, 14 + y0, 21, 23 + y0, P_BL)
-        c.rect(19, 14 + y0, 19, 23 + y0, P_G)
-        c.rect(21, 14 + y0, 21, 23 + y0, P_G)
-        c.rect(20, 17 + y0, 20, 20 + y0, P_W)
-        if pose == 3:
-            c.line(15, 18 + y0, 30, 16 + y0, P_STL, 2)
-            c.rect(14, 15 + y0, 15, 20 + y0, P_G)
-            c.rect(13, 17 + y0, 15, 19 + y0, P_ST)
-        else:
-            c.rect(12, 15 + y0, 13, 20 + y0, P_ST)   # sword arm (near)
-            c.line(12, 4 + y0, 12, 18 + y0, P_STL, 2)
-            c.rect(10, 18 + y0, 14, 18 + y0, P_G)
-            c.rect(12, 19 + y0, 12, 20 + y0, P_LE)
-    else:
-        # front (S / SE)
-        c.rect(12 + sh, 13 + y0, 20 + sh, 23, P_ST)
-        c.rect(12 + sh, 13 + y0, 12 + sh, 23, P_STL)
-        c.rect(20 + sh, 13 + y0, 20 + sh, 23, P_STD)
-        c.rect(14 + sh, 14 + y0, 18 + sh, 22, P_W)
-        c.rect(16 + sh, 15 + y0, 16 + sh, 20 + y0, P_R)
-        c.rect(14 + sh, 17 + y0, 18 + sh, 17 + y0, P_R)
-        c.rect(12 + sh, 22, 20 + sh, 22, P_LE)
-        c.rect(16 + sh, 22, 16 + sh, 22, P_G)
-        c.rect(12 + sh, 23, 20 + sh, 25, P_W)
-        c.rect(12 + sh, 25, 20 + sh, 25, P_WS)
-        c.rect(9 + sh, 12 + y0, 12 + sh, 14 + y0, P_G)
-        c.rect(20 + sh, 12 + y0, 23 + sh, 14 + y0, P_G)
-        c.rect(10 + sh, 15 + y0, 11 + sh, 21 + y0, P_ST)   # sword arm
-        # head
-        c.ell(16 + sh, 8 + y0, 3.5, 4, P_ST)
-        c.rect(14 + sh, 9 + y0, 18 + sh, 9 + y0, P_VI)
-        c.rect(16 + sh, 7 + y0, 16 + sh, 11 + y0, P_VI)
-        c.rect(14 + sh, 5 + y0, 15 + sh, 6 + y0, P_STL)
-        c.rect(15 + sh, 2 + y0, 16 + sh, 4 + y0, P_G)
-        # kite shield on screen-right
-        sx = 21 + sh + (1 if d == 1 else 0)
-        c.rect(sx, 14 + y0, sx + 5, 21 + y0, P_BL)
-        c.rect(sx + 1, 22 + y0, sx + 4, 23 + y0, P_BL)
-        c.rect(sx + 2, 24 + y0, sx + 3, 24 + y0, P_BL)
-        c.rect(sx, 14 + y0, sx + 5, 14 + y0, P_G)
-        c.rect(sx, 14 + y0, sx, 21 + y0, P_G)
-        c.rect(sx + 5, 14 + y0, sx + 5, 21 + y0, P_GD)
-        c.rect(sx + 2, 16 + y0, sx + 3, 21 + y0, P_W)
-        c.rect(sx + 1, 17 + y0, sx + 4, 18 + y0, P_W)
-        if pose == 3:
-            c.line(10 + sh, 20 + y0, 1, 26, P_STL, 2)
-            c.rect(8 + sh, 19 + y0, 11 + sh, 21 + y0, P_G)
-        else:
-            c.line(9 + sh, 5 + y0, 9 + sh, 18 + y0, P_STL, 2)
-            c.rect(7 + sh, 19 + y0, 11 + sh, 19 + y0, P_G)
-            c.rect(9 + sh, 20 + y0, 9 + sh, 21 + y0, P_LE)
-    return c.outline().a
-
-
-player_words = []
-sheet = np.zeros((32 * 5, 32 * 4), dtype=np.uint8)
-for d in range(5):
-    for pose in range(4):
-        a = paladin(d, pose)
-        player_words += tiles_from_img(a)
-        sheet[d * 32:d * 32 + 32, pose * 32:pose * 32 + 32] = a
-emit_words("spr_player", player_words)
+# The paladin itself is a pre-rendered 3D model (tools/paladin3d.py -> tools/art/paladin_sheet.png):
+# 5 poses x 8 true directions.  Frames are cut into 8x8 tiles, identical tiles are stored once, and the
+# game streams the current frame's 16 tiles into VRAM every frame.
+psheet = np.array(Image.open(os.path.join(os.path.dirname(os.path.abspath(__file__)), "art", "paladin_sheet.png")))
+pool = {}
+pool_words = []
+frame_idx = []
+for pose in range(5):
+    for d in range(8):
+        a = psheet[pose * 32:pose * 32 + 32, d * 32:d * 32 + 32]
+        idx = []
+        for ty in range(4):
+            for tx in range(4):
+                t = a[ty * 8:ty * 8 + 8, tx * 8:tx * 8 + 8]
+                key = t.tobytes()
+                if key not in pool:
+                    pool[key] = len(pool)
+                    pool_words += tiles_from_img(t)
+                idx.append(pool[key])
+        frame_idx.append(idx)
+emit_words("spr_player_pool", pool_words)
+C.append("const unsigned short player_frames[40][16] = {%s};\n" % ",".join("{%s}" % ",".join(map(str, f)) for f in frame_idx))
+H.append("extern const unsigned short player_frames[40][16];\n")
 emit_pal("pal_player", PAL_PLAYER)
-save_preview("player", sheet, PAL_PLAYER, 4)
+save_preview("player", psheet, PAL_PLAYER, 4)
+print("player: 40 frames, %d unique 8x8 tiles (of %d)" % (len(pool), 40 * 16))
 
 # ---------------------------------------------------------------------------
 # MONSTERS (archetypes drawn facing right)

@@ -9,6 +9,8 @@ static u32 rngState = 0x1234567;
 static int msgTimer;
 static int portalLock;
 static int healerLock;
+static int introShown;
+static int bossTalked;
 
 __attribute__((used)) const char saveTag[] = "SRAM_V113";   // tells emulators/flashcarts to use SRAM
 
@@ -170,6 +172,8 @@ void hud_draw(void) {
     if (bossAlive) {
         for (int i = 0; i < MAX_MON; i++)
             if (mons[i].active && mons[i].kind == 3 && mons[i].state != 0) {
+                if (music_current() != MUS_BOSS) music_play(MUS_BOSS);
+                if (!bossTalked) { bossTalked = 1; dialog_queue(EV_BOSS); }
                 text_center(3, bossNames[ACT - 1], C_GOLD);
                 bar(8, 4, 14, mons[i].hp, mons[i].maxhp, 0);
             }
@@ -290,7 +294,7 @@ static void load_common_gfx(void) {
     REG_BGCNT(0) = 0 | (1 << 2) | (31 << 8);
     REG_BGCNT(2) = 3 | (2 << 2) | (28 << 8);
     // sprites
-    dma3_copy32(OBJ_TILES + OT_PLAYER * 8, spr_player, sizeof(spr_player) / 4);
+    player_gfx_commit(1);
     for (int k = 0; k < 3; k++) {
         int a = act_mon_arch[ACT - 1][k];
         dma3_copy32(OBJ_TILES + (OT_MON + k * 48) * 8, spr_monsters + a * 48 * 8, 48 * 8);
@@ -325,6 +329,7 @@ static void load_common_gfx(void) {
         PAL_OBJ[OP_PORTAL_RED * 16 + i] = m;
     }
     world_load_gfx();
+    dialog_init_gfx();
 }
 
 static void hide_sprites(void) { spr_begin(); spr_end(); oam_flush(); }
@@ -410,6 +415,7 @@ static int title_and_menu(void) {
     REG_DISPCNT = 0x0500;   // BG0 + BG2
     light_update(0);
     REG_BLDCNT = 0;
+    music_play(MUS_TOWN);
     text_clear();
     hide_sprites();
     int blink = 0;
@@ -475,10 +481,13 @@ static void enter_floor(int floor) {
     hide_sprites();
     if (floor > hero.deepest && floor > 0) hero.deepest = floor;
     play_init_floor(floor, 0);
+    music_play(floor == 0 ? MUS_TOWN : MUS_DUNGEON);
     camera_update();
     map_scroll_update();
     show_msg(floorNames[ACT - 1][floor], floor ? C_GRAY : C_GREEN);
     if (floor == 0 || floor == hero.deepest) save_write();
+    bossTalked = 0;
+    if (floor == 0 && hero.deepest == 0 && !introShown) { introShown = 1; dialog_queue(EV_INTRO); }
     portalLock = 40;
     sfx_portal();
 }
@@ -539,6 +548,7 @@ static void pause_menu(void) {
 }
 
 static void healer_menu(void) {
+    dialog_healer();
     pl.hp = pl.maxhp; pl.mp = pl.maxmp;
     sfx_potion();
     int cur = 0;
@@ -564,6 +574,7 @@ static void healer_menu(void) {
 }
 
 static void death_screen(void) {
+    music_play(MUS_NONE);
     wait_frames(50);
     text_clear();
     box(3, 6, 26, 13);
@@ -577,11 +588,13 @@ static void death_screen(void) {
 }
 
 void on_act_clear(void) {
+    dialog_run((ACT == 5 && hero.diff == 2) ? EV_ENDING : EV_OUTRO);
     light_update(0);
     hide_sprites();
     REG_DISPCNT = 0x0500;
     text_clear();
     int finished = (ACT == 5 && hero.diff == 2);
+    music_play(MUS_TOWN);
     hero.deepest = 0;
     if (ACT < 5) hero.act = ACT + 1;
     else { hero.act = 1; if (hero.diff < 2) hero.diff++; }
@@ -619,6 +632,7 @@ int main(void) {
         if (!title_and_menu()) continue;
         player_recalc();
         pl.hp = pl.maxhp; pl.mp = pl.maxmp; pl.cur = SK_SMITE;
+        introShown = 0;
         bossDefeated = 0;
         enter_floor(0);
         int running = 1;
@@ -654,10 +668,12 @@ int main(void) {
             play_draw();
             vsync();
             oam_flush();
+            player_gfx_commit(0);
             map_scroll_update();
             light_update(curFloor > 0);
             hud_draw();
             snd_update();
+            dialog_pending();
             if (pl.dead) death_screen();
         }
     }
